@@ -1,0 +1,137 @@
+---
+title: "Project_Descriptive_Analysis"
+author: "Group 04"
+date: "2024-07-22"
+output:
+  word_document: default
+  html_document: default
+---
+```{r}
+#install.packages("readr")
+#install.packages("dplyr")
+#install.packages("summarytools")
+#install.packages("tidyr")
+
+
+# Load necessary libraries
+library(readr)
+library(dplyr)
+library(summarytools)
+library(tidyr)
+
+# Load the CSV file
+data <- read_csv("online_course_engagement_data.csv")
+
+# View the first few rows of the data
+head(data)
+
+# Calculate the percentage of missing values in each column
+missing_percentage <- colSums(is.na(data)) / nrow(data) * 100
+
+# Identify columns with more than 60% missing values
+cols_to_remove <- names(missing_percentage[missing_percentage > 60])
+
+# Remove columns with more than 60% missing values
+data_cleaned <- data %>% select(-all_of(cols_to_remove))
+
+# Replace missing values with mean values for the remaining columns
+# Compute means for columns that are numeric
+mean_values <- sapply(data_cleaned, function(col) {
+  if (is.numeric(col)) {
+    mean(col, na.rm = TRUE)
+  } else {
+    NA
+  }
+})
+
+# Replace NA values with computed means
+data_cleaned <- data_cleaned %>%
+  mutate(across(where(is.numeric), ~ replace_na(., mean_values[cur_column()])))
+
+# View the cleaned data
+head(data_cleaned)
+
+# save the cleaned dataset to a new CSV file
+#write_csv(data_cleaned,"C:/Users/HP/Desktop/kaleniya/3rd year/statistical_modeling/Cleaned_Dataset.csv")
+
+# Summary statistics for the entire dataset
+summary(data_cleaned)
+
+# Detailed descriptive statistics
+# Descriptive statistics for all columns
+descr(data_cleaned)
+
+# summary statistics for specific columns
+for (col_name in colnames(data_cleaned)) {
+  cat("\nSummary for column:", col_name, "\n")
+  print(summary(data_cleaned[[col_name]]))
+}
+
+# install.packages("ggplot2")
+library(ggplot2)
+
+# Filter columns which only include numeric values for plotting
+data_for_plotting <- data_cleaned %>% select(-c(1, 2,ncol(data_cleaned)-1, ncol(data_cleaned)))
+
+# Ensure all selected columns are numeric
+data_for_plotting <- data_for_plotting %>% select_if(is.numeric)
+
+# Check the structure of the numeric data
+str(data_for_plotting)
+
+# Print the column names to ensure they are correct
+print(colnames(data_for_plotting))
+
+# Plotting histograms and boxplots
+# Gather the numeric data into a long format for easier plotting with ggplot2
+data_long <- data_for_plotting %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value")
+
+# Combined histograms
+ggplot(data_long, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  facet_wrap(~ variable, scales = "free") +
+  theme_minimal() +
+  labs(title = "Histograms of All Variables", x = "Value", y = "Frequency")
+
+# Combined boxplots
+ggplot(data_long, aes(x = variable, y = value)) +
+  geom_boxplot(fill = "lightgreen", color = "black") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Boxplots of All Variables", x = "Variable", y = "Value")
+
+# Bar Plot for DeviceType
+ggplot(data_cleaned, aes(x = DeviceType)) +
+  geom_bar(fill = "orange", color = "black") +
+  theme_minimal() +
+  labs(title = "Bar Plot of Course Categories", x = "Course Category", y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Bar Plot for CourseCompletion
+ggplot(data_cleaned, aes(x = CourseCompletion)) +
+  geom_bar(fill = "pink", color = "black") +
+  theme_minimal() +
+  labs(title = "Bar Plot of Course Categories", x = "Course Category", y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Bar Plot for CourseCategory
+ggplot(data_cleaned, aes(x = CourseCategory)) +
+  geom_bar(fill = "purple", color = "black") +
+  theme_minimal() +
+  labs(title = "Bar Plot of Course Categories", x = "Course Category", y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Pie Chart for CourseCategory
+data_cleaned %>%
+  count(CourseCategory) %>%
+  ggplot(aes(x = "", y = n, fill = CourseCategory)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  theme_minimal() +
+  labs(title = "Pie Chart of Course Categories", x = "", y = "") +
+  theme(axis.text.x = element_blank(), axis.ticks = element_blank(), panel.grid = element_blank())
+
+
+```
+
